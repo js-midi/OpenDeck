@@ -43,6 +43,7 @@ class System
         leds,
         display,
         touchscreen,
+        customSysEx,
         AMOUNT
     };
 

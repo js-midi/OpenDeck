@@ -535,6 +535,18 @@ namespace
         },
     };
 
+    LESSDB::section_t customSysExSections[1] = {
+        //bytes section
+        {
+            .numberOfParameters     = Database::MAX_CUSTOM_SYSEX_BYTES,
+            .parameterType          = LESSDB::sectionParameterType_t::byte,
+            .preserveOnPartialReset = false,
+            .defaultValue           = 0xFF,
+            .autoIncrement          = false,
+            .address                = 0,
+        },
+    };
+
     LESSDB::block_t dbLayout[static_cast<uint8_t>(Database::block_t::AMOUNT) + 1] = {
         //system block
         {
@@ -589,6 +601,13 @@ namespace
         {
             .numberOfSections = static_cast<uint8_t>(Database::Section::touchscreen_t::AMOUNT),
             .section          = touchscreenSections,
+            .address          = 0,
+        },
+
+        //custom sysex block
+        {
+            .numberOfSections = 1,
+            .section          = customSysExSections,
             .address          = 0,
         },
     };
