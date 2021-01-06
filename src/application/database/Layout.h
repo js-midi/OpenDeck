@@ -24,7 +24,7 @@ limitations under the License.
 #include "io/touchscreen/Touchscreen.h"
 #include "system/System.h"
 
-#define MAX_PRESETS 10
+#define MAX_PRESETS 5
 
 namespace SectionPrivate
 {
