@@ -34,6 +34,7 @@ limitations under the License.
 #include "io/common/CInfo.h"
 #include "board/common/USBMIDIOverSerial/USBMIDIOverSerial.h"
 #include "bootloader/FwSelector/FwSelector.h"
+#include "sysex/SysEx.h"
 
 class StorageAccess : public LESSDB::StorageAccess
 {
@@ -545,6 +546,7 @@ class SystemHWA : public System::HWA
 
 MIDI            midi(hwaMIDI);
 ComponentInfo   cInfo;
+SysEx           sysEx(database, midi);
 IO::U8X8        u8x8(hwaU8X8);
 IO::Display     display(u8x8, database);
 IO::LEDs        leds(hwaLEDs, database);
