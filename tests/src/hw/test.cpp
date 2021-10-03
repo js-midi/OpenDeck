@@ -622,52 +622,41 @@ TEST_CASE(MIDIData)
     test::sleepMs(3000);
     test::wsystem("killall amidi > /dev/null");
     test::wsystem("grep -c . " + temp_midi_data_location, response);
-    printf("Total number of received DIN MIDI messages: %d\n", stoi(response));
+    std::cout << "Total number of received DIN MIDI messages: " << response << std::endl;
     TEST_ASSERT(stoi(response) >= (MAX_NUMBER_OF_BUTTONS / 2));
-// #elif defined(DIN_MIDI_SUPPORTED)
-//     //prepare serial port
-//     cyclePower(powerCycleType_t::standardWithDeviceCheck);
+#elif defined(DIN_MIDI_SUPPORTED)
+    test::wsystem("rm -f " + temp_midi_data_location);
 
-//     int result = -1;
-//     cmd        = std::string("stty -F /dev/" + avr_serial_port + " raw && stty -F /dev/" + avr_serial_port + " -echo -echoe -echok && stty -F /dev/" + avr_serial_port + " 19200 && sleep 3");
+    auto monitor = [&]() {
+        cmd = std::string("stdbuf -i0 -o0 -e0 ssterm -b 19200 -o hex -i hex /dev/") + avr_serial_port + " > " + temp_midi_data_location + " &";
+        test::wsystem(cmd, response);
+    };
 
-//     do
-//     {
-//         result = test::wsystem(cmd);
+    monitor();
 
-//         if (result != 0)
-//             cyclePower(powerCycleType_t::standardWithDeviceCheck);
-//     } while (result != 0);
+    TEST_ASSERT(handshake_ack == MIDIHelper::sendRawSysEx(handshake_req));
 
-//     auto monitor = [&]() {
-//         //listen to serial port
-//         cmd = std::string("stdbuf -i0 -o0 -e0 hexdump /dev/" + avr_serial_port + " -v -e '3/1 \"%02X \" \"\\n\"' > " + temp_midi_data_location + " &");
-//         TEST_ASSERT_EQUAL_INT(0, test::wsystem(cmd, response));
-//     };
+    //verify line count - since DIN MIDI isn't enabled, total count should be 0
+    test::wsystem("grep -c . " + temp_midi_data_location, response);
+    TEST_ASSERT_EQUAL_INT(0, stoi(response));
+    cmd = std::string("killall ssterm");
+    TEST_ASSERT_EQUAL_INT(0, test::wsystem("rm " + temp_midi_data_location));
 
-//     monitor();
+    //now enable DIN MIDI, reboot the board, repeat the test and verify that messages are received on DIN MIDI as well
+    TEST_ASSERT(MIDIHelper::setSingleSysExReq(System::Section::global_t::midiFeatures, static_cast<size_t>(System::midiFeature_t::dinEnabled), 1) == true);
+    reboot();
+    TEST_ASSERT(handshake_ack == MIDIHelper::sendRawSysEx(handshake_req));
+    monitor();
+    changePreset(false);
 
-//     TEST_ASSERT(handshake_ack == MIDIHelper::sendRawSysEx(handshake_req));
+    test::wsystem("sleep 3 && killall ssterm");
+    test::wsystem("cat " + temp_midi_data_location + " | xargs | sed 's/ /&\\n/3;P;D'", response);
+    std::cout << "Received DIN MIDI messages:\n"
+              << response << std::endl;
 
-//     cmd = std::string("killall hexdump");
-//     TEST_ASSERT_EQUAL_INT(0, test::wsystem(cmd, response));
-
-//     //verify line count - since DIN MIDI isn't enabled, total count should be 0
-//     test::wsystem("grep -c . " + temp_midi_data_location, response);
-//     TEST_ASSERT_EQUAL_INT(0, stoi(response));
-//     TEST_ASSERT_EQUAL_INT(0, test::wsystem("rm " + temp_midi_data_location));
-
-//     //now enable DIN MIDI, reboot the board, repeat the test and verify that messages are received on DIN MIDI as well
-//     TEST_ASSERT(MIDIHelper::setSingleSysExReq(System::Section::global_t::midiFeatures, static_cast<size_t>(System::midiFeature_t::dinEnabled), 1) == true);
-//     cyclePower(powerCycleType_t::standardWithDeviceCheck);
-//     TEST_ASSERT(handshake_ack == MIDIHelper::sendRawSysEx(handshake_req));
-//     monitor();
-//     changePreset(false);
-
-//     test::wsystem("sleep 3 && killall hexdump");
-//     test::wsystem("grep -c . " + temp_midi_data_location, response);
-//     printf("Total number of received DIN MIDI messages: %d\n", stoi(response));
-//     TEST_ASSERT(stoi(response) >= (MAX_NUMBER_OF_BUTTONS / 2));
+    test::wsystem("echo \"" + response + "\" | grep -c .", response);
+    std::cout << "Total number of received DIN MIDI messages: " << response << std::endl;
+    TEST_ASSERT(stoi(response) >= (MAX_NUMBER_OF_BUTTONS / 2));
 #endif
 }
 
